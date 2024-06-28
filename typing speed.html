@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Typing Test</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lobster&family=Open+Sans:wght@400;700&family=Poppins:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Open Sans', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: url('https://source.unsplash.com/1600x900/?nature,water') no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+        }
+
+        .container {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            font-family: 'Lobster', cursive;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            color: #fff;
+        }
+
+        #text-display {
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            padding: 10px;
+            border: 1px solid #cccccc;
+            border-radius: 5px;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        #text-input {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            font-size: 1em;
+            margin-bottom: 10px;
+            border: 1px solid #cccccc;
+            border-radius: 5px;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        #results {
+            margin-top: 20px;
+        }
+
+        #results p {
+            margin: 5px 0;
+            font-size: 1.2em;
+        }
+
+        .message {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.5em;
+            margin-top: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+            background: #007BFF;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        button .arrow {
+            margin-left: 10px;
+            display: inline-block;
+            width: 0;
+            height: 0;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+            border-left: 10px solid #fff;
+        }
+
+        button:hover .arrow {
+            border-left-color: #ccc;
+        }
+
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2em;
+            font-family: 'Poppins', sans-serif;
+            text-align: center;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0s, opacity 0.5s linear;
+        }
+
+        #overlay.show {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        @keyframes boom {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.1);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .boom-effect {
+            animation: boom 0.7s ease-out forwards;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Typing Test</h1>
+        <div id="text-display"></div>
+        <textarea id="text-input" placeholder="Start typing..." disabled></textarea>
+        <button id="start-button">Start Test</button>
+        <button id="next-button">Next <span class="arrow"></span></button>
+        <div id="results">
+            <p>Speed: <span id="speed">0</span> WPM</p>
+            <p>Accuracy: <span id="accuracy">0</span>%</p>
+        </div>
+    </div>
+    <div id="overlay">
+        <p id="final-message"></p>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const textDisplay = document.getElementById('text-display');
+            const textInput = document.getElementById('text-input');
+            const startButton = document.getElementById('start-button');
+            const nextButton = document.getElementById('next-button');
+            const speedDisplay = document.getElementById('speed');
+            const accuracyDisplay = document.getElementById('accuracy');
+            const overlay = document.getElementById('overlay');
+            const finalMessage = document.getElementById('final-message');
+            
+            let startTime, timer, overlayTimer;
+            let currentIndex = 0;
+            let testStarted = false;
+            const textsToType = [
+                "The quick brown fox jumps over the lazy dog.",
+                "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+                "A journey of a thousand miles begins with a single step.",
+                "To be or not to be, that is the question.",
+                "All that glitters is not gold."
+            ];
+            
+            function setNewText() {
+                textDisplay.textContent = textsToType[currentIndex];
+                currentIndex = (currentIndex + 1) % textsToType.length;
+            }
+            
+            startButton.addEventListener('click', startTest);
+            nextButton.addEventListener('click', () => {
+                if (timer) {
+                    clearInterval(timer);
+                }
+                setNewText();
+                textInput.value = '';
+                textInput.disabled = true;
+                testStarted = false;
+                speedDisplay.textContent = '0';
+                accuracyDisplay.textContent = '0';
+                finalMessage.textContent = '';
+                overlay.classList.remove('show', 'boom-effect');
+                clearTimeout(overlayTimer);
+            });
+
+            textInput.addEventListener('input', () => {
+                if (!testStarted) return;
+                
+                calculateResults();
+
+                if (textInput.value === textDisplay.textContent) {
+                    clearInterval(timer);
+                    textInput.disabled = true;
+                    testStarted = false;
+                    showFinalMessage();
+                }
+            });
+
+            function startTest() {
+                setNewText();
+                textInput.value = '';
+                textInput.disabled = false;
+                textInput.focus();
+                startTime = new Date();
+                testStarted = true;
+                speedDisplay.textContent = '0';
+                accuracyDisplay.textContent = '0';
+                finalMessage.textContent = '';
+                textInput.placeholder = "Start typing...";
+                
+                if (timer) {
+                    clearInterval(timer);
+                }
+
+                timer = setInterval(calculateResults, 1000);
+            }
+
+            function calculateResults() {
+                const currentTime = new Date();
+                const totalTime = (currentTime - startTime) / 1000; // in seconds
+                const minutes = totalTime / 60;
+                const wordsTyped = textInput.value.trim().split(/\s+/).filter(word => word).length;
+                const speed = Math.round(wordsTyped / minutes); // Words Per Minute (WPM)
+
+                const typedText = textInput.value;
+                let correctChars = 0;
+                for (let i = 0; i < typedText.length; i++) {
+                    if (typedText[i] === textDisplay.textContent[i]) {
+                        correctChars++;
+                    }
+                }
+                const accuracy = Math.round((correctChars / textDisplay.textContent.length) * 100);
+                
+                speedDisplay.textContent = isNaN(speed) ? '0' : speed;
+                accuracyDisplay.textContent = isNaN(accuracy) ? '0' : accuracy;
+            }
+
+            function showFinalMessage() {
+                const speed = parseInt(speedDisplay.textContent);
+                if (speed > 25) {
+                    finalMessage.textContent = "Excellent!";
+                } else if (speed >= 15 && speed <= 25) {
+                    finalMessage.textContent = "Good!";
+                } else {
+                    finalMessage.textContent = "Retry, you can do better!";
+                }
+                overlay.classList.add('show', 'boom-effect');
+
+                // Automatically hide the overlay after 5 seconds
+                overlayTimer = setTimeout(() => {
+                    overlay.classList.remove('show', 'boom-effect');
+                }, 2000);
+            }
+        });
+    </script>
+</body>
+</html>
